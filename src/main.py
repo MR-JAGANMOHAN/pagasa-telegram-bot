@@ -24,10 +24,10 @@ def parse_first_child_text(soup, div_id):
     if not first_child:
         return None
 
-    # Convert <br> to newline and extract full text
-    for br in first_child.find_all("br"):
-        br.replace_with("\n")
-    return first_child.get_text(strip=True, separator="\n")
+    # Extract raw HTML, convert <br> to \n, and clean up
+    raw_html = first_child.decode_contents()
+    text_with_newlines = raw_html.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+    return BeautifulSoup(text_with_newlines, "html.parser").get_text().strip()
 
 def load_previous_data():
     if os.path.exists(DATA_FILE):
