@@ -33,7 +33,10 @@ def load_previous_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
             return json.load(f)
-    return {}
+    else:
+        with open(DATA_FILE, "w") as f:
+            json.dump({}, f)
+        return {}
 
 def save_data(data):
     with open(DATA_FILE, "w") as f:
