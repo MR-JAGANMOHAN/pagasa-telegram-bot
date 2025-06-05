@@ -1,4 +1,3 @@
-httpx
+aiohttp
 beautifulsoup4
-python-telegram-bot
-asyncio
+python-telegram-bot==20.0
