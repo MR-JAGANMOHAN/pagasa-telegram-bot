@@ -66,13 +66,9 @@ async def main():
         new = new_data.get(category)
 
         if new and new != old:
-            # Only send the descriptive part (remove the first 2 lines)
+            # Normalize blank lines and send full message
             lines = new.splitlines()
-            if len(lines) > 2:
-                message = "\n".join(lines[2:]).strip()
-            else:
-                message = new.strip()
-
+            message = "\n".join([line.strip() for line in lines if line.strip()])
             tasks.append(send_to_telegram(bot, message))
 
     if tasks:
