@@ -66,9 +66,8 @@ async def main():
         new = new_data.get(category)
 
         if new and new != old:
-            # Normalize blank lines and send full message
-            lines = new.splitlines()
-            message = "\n".join([line.strip() for line in lines if line.strip()])
+            # Preserve paragraph breaks
+            message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
             tasks.append(send_to_telegram(bot, message))
 
     if tasks:
