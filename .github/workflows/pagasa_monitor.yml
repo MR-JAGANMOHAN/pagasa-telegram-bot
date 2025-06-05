@@ -2,60 +2,81 @@
 
 name: PAGASA Weather Monitor
 
-# Controls when the workflow will run
 on:
   schedule:
-    # Runs every 30 minutes
-    - cron: '*/30 * * * *'
-  workflow_dispatch: # Allows manual triggering from the Actions tab
+    - cron: '*/30 * * * *' # Runs every 30 minutes
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   check_weather:
-    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
+
+    # Add permissions for the GITHUB_TOKEN to allow committing to the repository
+    permissions:
+      contents: write # Required to push changes to weather_data.json
+      actions: read   # Default, good to be explicit
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # Checks out your repository under $GITHUB_WORKSPACE
+        uses: actions/checkout@v4
+        # To ensure the commit step can push, fetch all history if needed,
+        # though usually not required for simple file commits.
+        # with:
+        #   fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # Specify your desired Python version
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-        working-directory: ${{ github.workspace }} # Ensure this runs in the root
+        # No working-directory needed here if requirements.txt is at the root
 
-      - name: Cache weather data
-        uses: actions/cache@v4
-        id: cache-weather-data # Give an id to the cache step
-        with:
-          path: ${{ github.workspace }}/weather_data.json # Path to the file to cache
-          key: ${{ runner.os }}-weather-data # Cache key
+      # The weather_data.json will be created by the script if it doesn't exist.
+      # If committed to the repo, checkout will bring the latest version.
+      # Caching can still be useful for runs where the repo version is older than
+      # what was just processed by a previous action run that failed before commit,
+      # or as a speed optimization, but with direct commits, it's less critical for persistence.
 
       - name: Run weather check script
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         run: python src/main.py
-        working-directory: ${{ github.workspace }} # Ensure script runs from the root
+        # No working-directory needed if main.py is in src/ and DATA_FILE is relative or absolute
 
-      # This step is crucial: it commits weather_data.json if it changed.
-      # This makes the data persistence explicit in the repository.
-      # If you prefer not to commit this file, you can rely solely on the cache,
-      # but the cache isn't guaranteed to be available (though usually reliable).
-      - name: Commit weather_data.json
+      - name: Commit and push weather_data.json
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Check if weather_data.json was created/modified
+          if [ ! -f weather_data.json ]; then
+            echo "weather_data.json not found. Script might have failed or found no data to save."
+            exit 0 # Exit successfully if file not found, as script might handle this
+          fi
+
           git add weather_data.json
+          
           # Check if there are changes to commit
+          # git diff --staged --quiet returns true (0) if no changes, false (1) if changes
           if git diff --staged --quiet; then
             echo "No changes to weather_data.json to commit."
           else
-            git commit -m "Update weather_data.json"
-            git push
+            echo "Changes detected in weather_data.json. Committing..."
+            git commit -m "Update weather_data.json with latest advisories"
+            # Retry push a few times in case of transient network issues
+            for i in 1 2 3; do
+              git push && break # if push succeeds, break loop
+              echo "Push attempt $i failed. Retrying in 5 seconds..."
+              sleep 5
+            done
+            if ! git diff --staged --quiet; then # Check again if push ultimately failed
+                echo "Error: Failed to push changes after multiple retries."
+                # exit 1 # Optionally fail the step if push is critical
+            fi
           fi
-        working-directory: ${{ github.workspace }}
+        # working-directory: ${{ github.workspace }} # Ensure this runs in the root
