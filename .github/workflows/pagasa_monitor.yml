@@ -1,5 +1,8 @@
 name: PAGASA Monitor
 
+permissions:
+  contents: write  # <-- This allows pushing changes back to the repo
+
 on:
   schedule:
     - cron: '*/30 * * * *' # Runs every 30 minutes
