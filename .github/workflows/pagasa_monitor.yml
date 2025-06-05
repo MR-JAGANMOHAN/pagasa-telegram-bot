@@ -1,0 +1,61 @@
+# .github/workflows/pagasa_monitor.yml
+
+name: PAGASA Weather Monitor
+
+# Controls when the workflow will run
+on:
+  schedule:
+    # Runs every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  check_weather:
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # Checks out your repository under $GITHUB_WORKSPACE
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' # Specify your desired Python version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        working-directory: ${{ github.workspace }} # Ensure this runs in the root
+
+      - name: Cache weather data
+        uses: actions/cache@v4
+        id: cache-weather-data # Give an id to the cache step
+        with:
+          path: ${{ github.workspace }}/weather_data.json # Path to the file to cache
+          key: ${{ runner.os }}-weather-data # Cache key
+
+      - name: Run weather check script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        run: python src/main.py
+        working-directory: ${{ github.workspace }} # Ensure script runs from the root
+
+      # This step is crucial: it commits weather_data.json if it changed.
+      # This makes the data persistence explicit in the repository.
+      # If you prefer not to commit this file, you can rely solely on the cache,
+      # but the cache isn't guaranteed to be available (though usually reliable).
+      - name: Commit weather_data.json
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add weather_data.json
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to weather_data.json to commit."
+          else
+            git commit -m "Update weather_data.json"
+            git push
+          fi
+        working-directory: ${{ github.workspace }}
