@@ -46,24 +46,22 @@ async def fetch_website_content(url: str) -> str | None:
         return None
 
 def parse_div_content(html_content: str, div_id: str) -> str | None:
-    """Parses the HTML content to find the text of the first child div of a given div ID."""
+    """Parses the HTML content to find the text of the div with a given div ID, handling <br> as newlines."""
     try:
         soup = BeautifulSoup(html_content, "html.parser")
         target_div = soup.find("div", id=div_id)
         if target_div:
+            # If there is a child div, use it; otherwise, use the target div itself
             first_child_div = target_div.find("div")
-            if first_child_div:
-                for br in first_child_div.find_all("br"):
-                    br.replace_with("\n")
-                # Get text and clean up multiple newlines that might result from <br> and block elements
-                raw_text = first_child_div.get_text(separator="\n", strip=True)
-                # Replace multiple consecutive newlines with a single newline
-                cleaned_text = re.sub(r'\n\s*\n+', '\n\n', raw_text).strip()
-                return cleaned_text
-            else:
-                print(f"No first child div found within div with ID '{div_id}'.")
-                # Return a more specific message if content is truly not there
-                return f"No specific advisory content found for {DIV_IDS.get(div_id, div_id)} at this time."
+            content_div = first_child_div if first_child_div else target_div
+
+            # Replace <br> with newlines
+            for br in content_div.find_all("br"):
+                br.replace_with("\n")
+            # Get text and clean up multiple newlines
+            raw_text = content_div.get_text(separator="\n", strip=True)
+            cleaned_text = re.sub(r'\n\s*\n+', '\n\n', raw_text).strip()
+            return cleaned_text
         else:
             print(f"Div with ID '{div_id}' not found.")
             return f"The section for {DIV_IDS.get(div_id, div_id)} could not be found on the page."
