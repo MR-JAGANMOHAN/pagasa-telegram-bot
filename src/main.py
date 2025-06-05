@@ -3,7 +3,7 @@ import json
 import asyncio
 import httpx # Using httpx for asynchronous HTTP requests
 import re # For escaping markdown characters
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString # Import NavigableString
 from telegram import Bot
 from telegram.constants import ParseMode
 from telegram.error import TelegramError
@@ -45,7 +45,7 @@ def parse_div_content(html_content: str, div_id: str) -> str | None:
     """
     Parses the HTML content to find the text of the first immediate child div
     of the div with a given div_id. If no immediate child div is found,
-    it uses the text of the div_id itself. Handles <br> as newlines.
+    it uses the text of the div_id itself. Handles <br> as newlines and cleans whitespace.
     """
     try:
         soup = BeautifulSoup(html_content, "html.parser")
@@ -59,17 +59,48 @@ def parse_div_content(html_content: str, div_id: str) -> str | None:
         first_immediate_child_div = target_div.find("div", recursive=False)
         content_source_div = first_immediate_child_div if first_immediate_child_div else target_div
 
-        for br_tag in content_source_div.find_all("br"):
-            br_tag.replace_with("\n")
+        if not content_source_div: 
+             # This case should ideally not be reached if target_div was found.
+             print(f"Critical error: content_source_div is None for {div_id} despite target_div existing.")
+             advisory_name = DIV_IDS.get(div_id, div_id)
+             return f"Critical parsing error: No content source for {advisory_name}."
+
+        text_parts = []
+        # Iterate over direct children of the content_source_div
+        for element in content_source_div.children: 
+            if isinstance(element, NavigableString): # If it's a text node
+                text_parts.append(str(element)) 
+            elif element.name == 'br': # If it's a <br> tag
+                text_parts.append('\n')
+            # Note: If other inline tags (e.g., <b>, <i>) could appear directly
+            # within content_source_div and contain text, this logic might need
+            # to be expanded to call element.get_text() for those.
+            # For the provided HTML structure, this handles text nodes and <br>s.
+
+        # Join all parts; this text will have original spacing from HTML and \n for <br>
+        raw_text_from_parts = "".join(text_parts)
         
-        # Changed this line:
-        # Get all text concatenated. The \n from <br> replacements are now part of this text.
-        raw_text = content_source_div.get_text() 
+        # Process the raw text to achieve the desired formatting:
+        # 1. Split into lines based on the '\n' characters (these came from <br> tags or were in original text nodes)
+        lines = raw_text_from_parts.split('\n')
         
-        # Clean up multiple consecutive newlines and strip leading/trailing whitespace from the whole string.
-        cleaned_text = re.sub(r'\n\s*\n+', '\n\n', raw_text).strip()
+        # 2. Strip leading/trailing whitespace from each individual line
+        #    This ensures that lines like "    Some Text   " become "Some Text"
+        stripped_lines = [line.strip() for line in lines]
         
-        return cleaned_text
+        # 3. Join these stripped lines back with a single newline character.
+        #    At this point, multiple <br> tags (e.g., <br><br>) would have resulted in
+        #    multiple empty strings in stripped_lines, which then become multiple
+        #    consecutive '\n' characters here.
+        text_with_single_nl_and_stripped_lines = "\n".join(stripped_lines)
+        
+        # 4. Normalize multiple newlines to create paragraph breaks.
+        #    Replace sequences of one or more newlines (which might have only whitespace
+        #    between them if original lines were just spaces) with exactly two newlines.
+        #    Finally, strip any leading/trailing newlines from the entire resulting block.
+        final_text = re.sub(r'\n\s*\n+', '\n\n', text_with_single_nl_and_stripped_lines).strip()
+        
+        return final_text
 
     except Exception as e:
         print(f"Error parsing HTML content for div '{div_id}': {e}")
@@ -111,8 +142,8 @@ async def send_telegram_message(bot_token: str, channel_id: str, message_text: s
     escaped_advisory_type = escape_markdown_v2(advisory_type)
     header = escape_markdown_v2("🇵🇭 PAGASA Update: ") + escaped_advisory_type + escape_markdown_v2(" 🇵🇭")
     
-    if not message_text:
-        print(f"Message text for {advisory_type} is empty. Skipping notification.")
+    if not message_text: # Also check if message_text is only whitespace
+        print(f"Message text for {advisory_type} is empty or whitespace. Skipping notification.")
         return
         
     escaped_message_text = escape_markdown_v2(message_text)
@@ -126,6 +157,7 @@ async def send_telegram_message(bot_token: str, channel_id: str, message_text: s
         try:
             print(f"Attempting to send as plain text for {advisory_type} due to previous error.")
             plain_text_header = f"🇵🇭 PAGASA Update: {advisory_type} 🇵🇭"
+            # Use the original, unescaped message_text for plain text fallback
             plain_text_message = f"{plain_text_header}\n\n{message_text}"
             await bot.send_message(chat_id=channel_id, text=plain_text_message)
             print(f"Fallback plain text message sent for {advisory_type}.")
@@ -148,6 +180,7 @@ async def main():
     if not html_content:
         print("Failed to fetch website content. Exiting.")
         error_message = "Failed to fetch the latest weather data from PAGASA website. Please check the site directly."
+        # Ensure error messages are also sent if possible
         await send_telegram_message(TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, error_message, "Website Fetch Error")
         return
 
@@ -161,41 +194,51 @@ async def main():
         print(f"\nProcessing {advisory_name} (div_id: {div_id})...")
         content = parse_div_content(html_content, div_id)
 
-        if content is None or "could not be found" in content or "Error parsing content" in content:
-            print(f"  Content for {advisory_name} problem: {content}")
-            if content is None: # Should not happen if parse_div_content returns error strings
-                content = f"Unable to retrieve content for {advisory_name} at this time. Please check the PAGASA website directly."
+        # Check if parsing returned an error message or valid (even if empty after strip) content
+        if content is None or "could not be found on the page" in content or "Error parsing content" in content or "Critical parsing error" in content:
+            print(f"  Problem parsing content for {advisory_name}: {content}")
+            # If content is an error message from parsing, it will be used.
+            # If parse_div_content returned None for some other reason (shouldn't with current logic), craft a message.
+            if content is None: 
+                content = f"Unable to retrieve or parse content for {advisory_name} at this time. Please check the PAGASA website directly."
         
-        current_data[div_id] = content
+        current_data[div_id] = content # Store even if it's an error message or empty
         previous_content = previous_data.get(div_id)
 
         print(f"  Previous content for {div_id}: {'Not found or empty' if not previous_content else 'Found'}")
+        # print(f"  Current content for {div_id}: '{content[:100] if content else 'Empty'}'...")
+
 
         should_notify = False
+        # Determine if a notification is needed
         if is_first_overall_run:
-            print(f"  Overall first run detected. Will notify if content exists and is not an error.")
-            if content and not ("could not be found" in content or "Error parsing content" in content):
+            print(f"  Overall first run detected. Will notify if new content is valid.")
+            # Only notify on first run if content is not an error and not empty
+            if content and not any(err_msg in content for err_msg in ["could not be found", "Error parsing", "Critical parsing"]):
                 should_notify = True
-        elif previous_content is None:
-            print(f"  No previous data found for {advisory_name}. Will notify if content exists and is not an error.")
-            if content and not ("could not be found" in content or "Error parsing content" in content):
+        elif previous_content is None: # No previous data for this specific advisory
+            print(f"  No previous data found for {advisory_name}. Will notify if new content is valid.")
+            if content and not any(err_msg in content for err_msg in ["could not be found", "Error parsing", "Critical parsing"]):
                 should_notify = True
         elif content != previous_content:
             print(f"  Content for {advisory_name} has changed.")
+            # Notify on change, even if new content is an error message (to inform about the parsing issue)
+            # or if new content is empty (to inform that advisory was removed/emptied)
             should_notify = True 
         else:
             print(f"  Content for {advisory_name} has not changed.")
 
-        if should_notify and content: 
+        if should_notify and content: # Ensure content is not None (it could be an empty string if advisory is empty)
             print(f"  Queueing notification for {advisory_name}.")
             notifications_to_send.append({
                 "token": TELEGRAM_BOT_TOKEN,
                 "channel": TELEGRAM_CHANNEL_ID,
-                "message": content,
+                "message": content, # This might be an error message, actual advisory, or empty string
                 "type": advisory_name
             })
-        elif should_notify and not content:
-             print(f"  Change detected for {advisory_name}, but new content is empty. Not sending notification.")
+        elif should_notify and content is None: # Should not happen due to error message crafting above
+             print(f"  Change detected for {advisory_name}, but new content is None. Not queueing.")
+
 
     if notifications_to_send:
         await asyncio.gather(*(
@@ -210,9 +253,14 @@ async def main():
 
 if __name__ == "__main__":
     # Example HTML for testing parse_div_content locally
-    # To run this test, uncomment it and comment out asyncio.run(main())
-    # You'd also need to make parse_div_content non-async or wrap its call.
+    # To run this test:
+    # 1. Make sure DIV_IDS is defined if your parse_div_content uses it for error messages.
+    # 2. Call the function directly.
     """
+    # Local test setup:
+    DIV_IDS_test = { "thunderstorms": "Thunderstorm Advisory/Watch" }
+    def get_div_ids_for_test(): global DIV_IDS; DIV_IDS = DIV_IDS_test
+    
     test_html_thunderstorm_flat = '''
     <div id="thunderstorms" class="tab-pane fade in active">
         <div><!-- First immediate child -->
@@ -229,19 +277,26 @@ if __name__ == "__main__":
         </div>
     </div>
     '''
-    # print("--- Testing with FLAT structure (user's example) ---")
+    # get_div_ids_for_test() # To make DIV_IDS available to parse_div_content if it's out of main
+    # print("--- Testing with user's example HTML ---")
     # result_flat = parse_div_content(test_html_thunderstorm_flat, "thunderstorms")
     # print(f"Result:\n'{result_flat}'")
+    # 
     # expected_output = '''Thunderstorm Watch #NCR_PRSD
 # Issued at: 10:00 PM, 05 June 2025
 # 
-# Thunderstorm is MORE LIKELY to develop over Greater Metro Manila Area(Metro Manila, Bulacan, Rizal, Laguna and Cavite) within 12 hours. 
+# Thunderstorm is MORE LIKELY to develop over Greater Metro Manila Area(Metro Manila, Bulacan, Rizal, Laguna and Cavite) within 12 hours.
 # 
-# All are advised to continue monitoring for updates.'''.replace("# ", "") # Remove comment markers for comparison
-    # print(f"Matches expected: {result_flat == expected_output}")
+# All are advised to continue monitoring for updates.'''.strip().replace("# ", "")
+    # if result_flat == expected_output:
+    #    print("\\nTest PASSED!")
+    # else:
+    #    print("\\nTest FAILED!")
+    #    print(f"Expected:\n'{expected_output}'")
 
     """
     try:
         asyncio.run(main())
     except Exception as e:
         print(f"An error occurred in the main execution: {e}")
+
