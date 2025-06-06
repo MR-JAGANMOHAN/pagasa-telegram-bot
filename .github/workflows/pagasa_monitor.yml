@@ -1,8 +1,5 @@
 name: PAGASA Monitor
 
-permissions:
-  contents: write  # <-- This allows pushing changes back to the repo
-
 on:
   schedule:
     - cron: '*/30 * * * *' # Runs every 30 minutes
@@ -11,6 +8,9 @@ on:
 jobs:
   run-monitor:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # Needed to push changes back to the repo
 
     steps:
     - name: Checkout repo
@@ -41,6 +41,7 @@ jobs:
         git config user.email "github-actions@github.com"
         git add previous_data.json
         git commit -m "Update previous_data.json" || echo "No changes to commit"
+        git pull --rebase
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
