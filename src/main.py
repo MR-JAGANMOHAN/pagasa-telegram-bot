@@ -4,12 +4,16 @@ import os
 from bs4 import BeautifulSoup
 from telegram import Bot
 import json
+import logging
 
 # Get secrets from environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHANNEL_USERNAME = os.getenv("TELEGRAM_CHANNEL_ID")
 DATA_FILE = "previous_data.json"
 URL = "https://www.pagasa.dost.gov.ph/regional-forecast/ncrprsd"
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
 async def fetch_html(session, url):
     async with session.get(url) as response:
@@ -43,11 +47,19 @@ def save_data(data):
         json.dump(data, f)
 
 async def send_to_telegram(bot, message):
+    logging.info(f"Sending message to Telegram: {message[:60]}{'...' if len(message) > 60 else ''}")
     await bot.send_message(chat_id=CHANNEL_USERNAME, text=message)
+    logging.info("Message sent to Telegram.")
 
 async def main():
+    logging.info("Starting PAGASA monitor script.")
     async with aiohttp.ClientSession() as session:
-        html = await fetch_html(session, URL)
+        try:
+            html = await fetch_html(session, URL)
+            logging.info("Fetched PAGASA forecast page successfully.")
+        except Exception as e:
+            logging.error(f"Failed to fetch PAGASA forecast page: {e}")
+            return
 
     soup = BeautifulSoup(html, "html.parser")
 
@@ -63,20 +75,41 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
 
     tasks = []
+    found_new = False
 
     for category in ["rainfalls", "thunderstorms"]:
         old = old_data.get(category)
         new = new_data.get(category)
 
         if new and new != old:
+            found_new = True
+            logging.info(f"New {category} warning found. Sending to Telegram.")
             # Preserve paragraph breaks
             message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
             tasks.append(send_to_telegram(bot, message))
+        elif new:
+            logging.info(f"No new {category} warning. Same as previous.")
+        else:
+            logging.warning(f"No data found for {category}.")
 
     if tasks:
-        await asyncio.gather(*tasks)
+        try:
+            await asyncio.gather(*tasks)
+            logging.info("All new warnings sent to Telegram successfully.")
+        except Exception as e:
+            logging.error(f"Failed to send one or more messages to Telegram: {e}")
+    else:
+        logging.info("No new warnings to send.")
 
-    save_data(new_data)
+    try:
+        save_data(new_data)
+        logging.info("Saved new data to previous_data.json.")
+    except Exception as e:
+        logging.error(f"Failed to save data: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+        logging.info("PAGASA monitor script finished.")
+    except Exception as e:
+        logging.error(f"Script failed: {e}")
