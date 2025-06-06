@@ -82,11 +82,14 @@ async def main():
         new = new_data.get(category)
 
         if new and new != old:
-            found_new = True
-            logging.info(f"New {category} warning found. Sending to Telegram.")
-            # Preserve paragraph breaks
-            message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
-            tasks.append(send_to_telegram(bot, message))
+            if "Metro Manila" in new:
+                found_new = True
+                logging.info(f"New {category} warning found and contains 'Metro Manila'. Sending to Telegram.")
+                # Preserve paragraph breaks
+                message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
+                tasks.append(send_to_telegram(bot, message))
+            else:
+                logging.info(f"New {category} warning found but does NOT contain 'Metro Manila'. Not sending to Telegram.")
         elif new:
             logging.info(f"No new {category} warning. Same as previous.")
         else:
