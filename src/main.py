@@ -87,6 +87,7 @@ async def main():
                 logging.info(f"New {category} warning found and contains 'Metro Manila'. Sending to Telegram.")
                 # Preserve paragraph breaks
                 message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
+                message = message.replace("Metro Manila", "<b><u>Metro Manila</u></b>")
                 tasks.append(send_to_telegram(bot, message))
             else:
                 logging.info(f"New {category} warning found but does NOT contain 'Metro Manila'. Not sending to Telegram.")
