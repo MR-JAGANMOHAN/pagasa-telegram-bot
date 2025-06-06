@@ -2,7 +2,10 @@ name: PAGASA Monitor
 
 on:
   schedule:
-    - cron: '*/20 * * * *' # Runs every 30 minutes
+    # Run every hour at minutes 10, 30, and 50 (i.e., every 20 mins starting from :10)
+    - cron: '10 * * * *'
+    - cron: '30 * * * *'
+    - cron: '50 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -10,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # Needed to push changes back to the repo
+      contents: write  # Required for committing updates to previous_data.json
 
     steps:
     - name: Checkout repo
