@@ -3,7 +3,35 @@ name: PAGASA Monitor
 on:
   schedule:
     # Run every 30 minutes, eternally
-    - cron: '0,30 * * * *'
+    # - cron: '0,30 * * * *'
+
+    # 1) Thunderstorm‐warning checks (every hour at :05, :20, :35, :50 Manila)
+    #    • “5 * * * *”   → runs at UTC HH:05  ⇒ MNL (HH+8):05 every hour
+    #    • “20 * * * *”  → runs at UTC HH:20  ⇒ MNL (HH+8):20 every hour
+    #    • “35 * * * *”  → runs at UTC HH:35  ⇒ MNL (HH+8):35 every hour
+    #    • “50 * * * *”  → runs at UTC HH:50  ⇒ MNL (HH+8):50 every hour
+    #
+    - cron:  '5  * * * *'
+    - cron:  '20 * * * *'
+    - cron:  '35 * * * *'
+    - cron:  '50 * * * *'
+
+    # 2) Heavy‐rainfall‐warning checks (every hour at :10 Manila)
+    #    • “10 * * * *”  → runs at UTC HH:10  ⇒ MNL (HH+8):10 every hour
+    #
+    - cron:  '10 * * * *'
+
+    # 3) Tropical‐cyclone bulletins (Manila 02:05, 08:05, 14:05, 20:05)
+    #    Convert each to UTC by subtracting 8 hours:
+    #      • 02:05 MNL → UTC 18:05 (previous day) ⇒ “5 18 * * *”
+    #      • 08:05 MNL → UTC 00:05 (same day)     ⇒ “5 0 * * *”
+    #      • 14:05 MNL → UTC 06:05 (same day)     ⇒ “5 6 * * *”
+    #      • 20:05 MNL → UTC 12:05 (same day)     ⇒ “5 12 * * *”
+    #
+    - cron:  '5  18 * * *'
+    - cron:  '5  0  * * *'
+    - cron:  '5  6  * * *'
+    - cron:  '5  12 * * *'
   workflow_dispatch:
 
 jobs:
