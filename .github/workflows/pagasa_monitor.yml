@@ -15,12 +15,12 @@ on:
     # - cron:  '20 * * * *'
     # - cron:  '35 * * * *'
     # - cron:  '50 * * * *'
-      - cron:  '5  * * * *'
-      - cron:  '10 * * * *'
-      - cron:  '20 * * * *'
-      - cron:  '30 * * * *'
-      - cron:  '40 * * * *'
-      - cron:  '50 * * * *'
+    - cron:  '5  * * * *'
+    - cron:  '10 * * * *'
+    - cron:  '20 * * * *'
+    - cron:  '30 * * * *'
+    - cron:  '40 * * * *'
+    - cron:  '50 * * * *'
 
 
     # 2) Heavy‐rainfall‐warning checks (every hour at :10 Manila)
