@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from telegram import Bot
 import json
 import logging
+import re
 
 # Get secrets from environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -87,7 +88,7 @@ async def main():
                 logging.info(f"New {category} warning found and contains 'Metro Manila'. Sending to Telegram.")
                 # Preserve paragraph breaks
                 message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
-                message = message.replace("Metro Manila", "<b><u>Metro Manila</u></b>")
+                message = re.sub(r'(?<!Greater )Metro Manila', "<b><u>Metro Manila</u></b>", message)
                 message = message.replace("Thunderstorm Advisory", "⛈️ <b>Thunderstorm Advisory</b>")
                 message = message.replace("Thunderstorm Watch", "🕑 <b>Thunderstorm Watch</b>")
                 message = message.replace("Moderate to heavy rainshowers with lightning and strong winds are expected over", "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over")
