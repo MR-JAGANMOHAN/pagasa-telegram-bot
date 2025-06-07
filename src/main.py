@@ -117,6 +117,10 @@ async def main():
                     "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced",
                 )
                 message = message.replace(
+                    "Intense to torrential rainshowers with lightning and strong winds are being experienced in",
+                    "☔ Intense to torrential rainshowers with lightning and strong winds are being experienced in",
+                )
+                message = message.replace(
                     "The above conditions are being experienced in",
                     "☔ The above conditions are being experienced in",
                 )
