@@ -93,6 +93,7 @@ async def main():
                 message = message.replace("Thunderstorm Watch", "🕑 <b>Thunderstorm Watch</b>")
                 message = message.replace("Moderate to heavy rainshowers with lightning and strong winds are expected over", "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over")
                 message = message.replace("Heavy to intense rainshowers with lightning and strong winds are being experienced", "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced")
+                message = message.replace("The above conditions are being experienced in", "☔ The above conditions are being experienced in")
                 message = message.replace("Heavy Rainfall Warning", "☔ <b>Heavy Rainfall Warning</b>")
                 message = message.replace("YELLOW WARNING", "🟡 <b>YELLOW WARNING</b>")
                 message = message.replace("ORANGE WARNING", "🟠 <b>ORANGE WARNING</b>")
