@@ -48,7 +48,7 @@ def save_data(data):
 
 async def send_to_telegram(bot, message):
     logging.info(f"Sending message to Telegram: {message[:60]}{'...' if len(message) > 60 else ''}")
-    await bot.send_message(chat_id=CHANNEL_USERNAME, text=message)
+    await bot.send_message(chat_id=CHANNEL_USERNAME, text=message, parse_mode="HTML")
     logging.info("Message sent to Telegram.")
 
 async def main():
