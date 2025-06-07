@@ -88,6 +88,13 @@ async def main():
                 # Preserve paragraph breaks
                 message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
                 message = message.replace("Metro Manila", "<b><u>Metro Manila</u></b>")
+                message = message.replace("Thunderstorm Watch", "⛈️ <b>Thunderstorm Watch</b>")
+                message = message.replace("Moderate to heavy rainshowers with lightning and strong winds are expected over", "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over")
+                message = message.replace("Heavy to intense rainshowers with lightning and strong winds are being experienced", "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced")
+                message = message.replace("Heavy Rainfall Warning", "☔ <b>Heavy Rainfall Warning</b>")
+                message = message.replace("YELLOW WARNING", "🟡 <b>YELLOW WARNING</b>")
+                message = message.replace("ORANGE WARNING", "🟠 <b>ORANGE WARNING</b>")
+                message = message.replace("RED WARNING", "🔴 <b>RED WARNING</b>")
                 tasks.append(send_to_telegram(bot, message))
             else:
                 logging.info(f"New {category} warning found but does NOT contain 'Metro Manila'. Not sending to Telegram.")
