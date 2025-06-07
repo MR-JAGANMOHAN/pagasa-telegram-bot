@@ -14,11 +14,13 @@ DATA_FILE = "previous_data.json"
 URL = "https://www.pagasa.dost.gov.ph/regional-forecast/ncrprsd"
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
+
 
 async def fetch_html(session, url):
     async with session.get(url) as response:
         return await response.text()
+
 
 def parse_first_child_text(soup, div_id):
     div = soup.find("div", id=div_id)
@@ -31,8 +33,11 @@ def parse_first_child_text(soup, div_id):
 
     # Extract raw HTML, convert <br> to \n, and clean up
     raw_html = first_child.decode_contents()
-    text_with_newlines = raw_html.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+    text_with_newlines = (
+        raw_html.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+    )
     return BeautifulSoup(text_with_newlines, "html.parser").get_text().strip()
+
 
 def load_previous_data():
     if os.path.exists(DATA_FILE):
@@ -43,14 +48,19 @@ def load_previous_data():
             json.dump({}, f)
         return {}
 
+
 def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
 
+
 async def send_to_telegram(bot, message):
-    logging.info(f"Sending message to Telegram: {message[:60]}{'...' if len(message) > 60 else ''}")
+    logging.info(
+        f"Sending message to Telegram: {message[:60]}{'...' if len(message) > 60 else ''}"
+    )
     await bot.send_message(chat_id=CHANNEL_USERNAME, text=message, parse_mode="HTML")
     logging.info("Message sent to Telegram.")
+
 
 async def main():
     logging.info("Starting PAGASA monitor script.")
@@ -67,10 +77,7 @@ async def main():
     rain_text = parse_first_child_text(soup, "rainfalls")
     storm_text = parse_first_child_text(soup, "thunderstorms")
 
-    new_data = {
-        "rainfalls": rain_text,
-        "thunderstorms": storm_text
-    }
+    new_data = {"rainfalls": rain_text, "thunderstorms": storm_text}
 
     old_data = load_previous_data()
     bot = Bot(token=BOT_TOKEN)
@@ -85,22 +92,45 @@ async def main():
         if new and new != old:
             if "Metro Manila" in new:
                 found_new = True
-                logging.info(f"New {category} warning found and contains 'Metro Manila'. Sending to Telegram.")
+                logging.info(
+                    f"New {category} warning found and contains 'Metro Manila'. Sending to Telegram."
+                )
                 # Preserve paragraph breaks
-                message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
-                message = re.sub(r'(?<!Greater )Metro Manila', "<b><u>Metro Manila</u></b>", message)
-                message = message.replace("Thunderstorm Advisory", "⛈️ <b>Thunderstorm Advisory</b>")
-                message = message.replace("Thunderstorm Watch", "🕑 <b>Thunderstorm Watch</b>")
-                message = message.replace("Moderate to heavy rainshowers with lightning and strong winds are expected over", "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over")
-                message = message.replace("Heavy to intense rainshowers with lightning and strong winds are being experienced", "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced")
-                message = message.replace("The above conditions are being experienced in", "☔ The above conditions are being experienced in")
-                message = message.replace("Heavy Rainfall Warning", "☔ <b>Heavy Rainfall Warning</b>")
+                message = "\n\n".join(
+                    [para.strip() for para in new.split("\n\n") if para.strip()]
+                )
+                message = re.sub(
+                    r"(?<!Greater )Metro Manila", "<b><u>Metro Manila</u></b>", message
+                )
+                message = message.replace(
+                    "Thunderstorm Advisory", "⛈️ <b>Thunderstorm Advisory</b>"
+                )
+                message = message.replace(
+                    "Thunderstorm Watch", "🕑 <b>Thunderstorm Watch</b>"
+                )
+                message = message.replace(
+                    "Moderate to heavy rainshowers with lightning and strong winds are expected over",
+                    "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over",
+                )
+                message = message.replace(
+                    "Heavy to intense rainshowers with lightning and strong winds are being experienced",
+                    "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced",
+                )
+                message = message.replace(
+                    "The above conditions are being experienced in",
+                    "☔ The above conditions are being experienced in",
+                )
+                message = message.replace(
+                    "Heavy Rainfall Warning", "☔ <b>Heavy Rainfall Warning</b>"
+                )
                 message = message.replace("YELLOW WARNING", "🟡 <b>YELLOW WARNING</b>")
                 message = message.replace("ORANGE WARNING", "🟠 <b>ORANGE WARNING</b>")
                 message = message.replace("RED WARNING", "🔴 <b>RED WARNING</b>")
                 tasks.append(send_to_telegram(bot, message))
             else:
-                logging.info(f"New {category} warning found but does NOT contain 'Metro Manila'. Not sending to Telegram.")
+                logging.info(
+                    f"New {category} warning found but does NOT contain 'Metro Manila'. Not sending to Telegram."
+                )
         elif new:
             logging.info(f"No new {category} warning. Same as previous.")
         else:
@@ -120,6 +150,7 @@ async def main():
         logging.info("Saved new data to previous_data.json.")
     except Exception as e:
         logging.error(f"Failed to save data: {e}")
+
 
 if __name__ == "__main__":
     try:
