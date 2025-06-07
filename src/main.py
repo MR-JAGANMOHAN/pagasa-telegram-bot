@@ -125,7 +125,7 @@ async def main():
                     "☔ The above conditions are being experienced in",
                 )
                 message = message.replace(
-                    "Heavy Rainfall Warning", "☔ <b>Heavy Rainfall Warning</b>"
+                    "Heavy Rainfall Warning", "⚠️ <b>Heavy Rainfall Warning</b>"
                 )
                 message = message.replace("YELLOW WARNING", "🟡 <b>YELLOW WARNING</b>")
                 message = message.replace("ORANGE WARNING", "🟠 <b>ORANGE WARNING</b>")
