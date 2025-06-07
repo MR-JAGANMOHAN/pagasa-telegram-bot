@@ -88,7 +88,8 @@ async def main():
                 # Preserve paragraph breaks
                 message = "\n\n".join([para.strip() for para in new.split("\n\n") if para.strip()])
                 message = message.replace("Metro Manila", "<b><u>Metro Manila</u></b>")
-                message = message.replace("Thunderstorm Watch", "⛈️ <b>Thunderstorm Watch</b>")
+                message = message.replace("Thunderstorm Advisory", "⛈️ <b>Thunderstorm Advisory</b>")
+                message = message.replace("Thunderstorm Watch", "🕑 <b>Thunderstorm Watch</b>")
                 message = message.replace("Moderate to heavy rainshowers with lightning and strong winds are expected over", "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over")
                 message = message.replace("Heavy to intense rainshowers with lightning and strong winds are being experienced", "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced")
                 message = message.replace("Heavy Rainfall Warning", "☔ <b>Heavy Rainfall Warning</b>")
