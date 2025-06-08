@@ -13,10 +13,7 @@ from io import BytesIO
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHANNEL_USERNAME = os.getenv("TELEGRAM_CHANNEL_ID")
 DATA_FILE = "previous_data.json"
-ADVISORY_DATA_FILE = "previous_weather_advisory.json"
-TEST_ADVISORY_CHANNEL = "@testchanneljrp"
 URL = "https://www.pagasa.dost.gov.ph/regional-forecast/ncrprsd"
-ADVISORY_URL = "https://www.pagasa.dost.gov.ph/weather/weather-advisory"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
@@ -65,86 +62,6 @@ async def send_to_telegram(bot, message):
     )
     await bot.send_message(chat_id=CHANNEL_USERNAME, text=message, parse_mode="HTML")
     logging.info("Message sent to Telegram.")
-
-
-def get_previous_advisory_number():
-    if not os.path.exists(ADVISORY_DATA_FILE):
-        return None
-    try:
-        with open(ADVISORY_DATA_FILE, "r") as f:
-            data = json.load(f)
-            return data.get("weather_advisory_no")
-    except Exception:
-        return None
-
-
-def set_previous_advisory_number(number):
-    data = {"weather_advisory_no": number}
-    with open(ADVISORY_DATA_FILE, "w") as f:
-        json.dump(data, f)
-
-
-async def check_weather_advisory(bot):
-    async with aiohttp.ClientSession() as session:
-        html = await fetch_html(session, ADVISORY_URL)
-    soup = BeautifulSoup(html, "html.parser")
-    adv_div = soup.find("div", class_="weather-advisory")
-    if not adv_div:
-        logging.info("No weather-advisory div found.")
-        return
-    h4 = adv_div.find("h4")
-    if not h4:
-        logging.info("No h4 found in weather-advisory div.")
-        return
-    m = re.search(r"WEATHER ADVISORY NO\.?\s*(\d+)", h4.get_text())
-    if not m:
-        logging.info(f"No advisory number found in h4. h4 text: {h4.get_text()}")
-        return
-    advisory_no = m.group(1)
-    prev_no = get_previous_advisory_number()
-    if prev_no == advisory_no:
-        logging.info("No new weather advisory.")
-        return
-    # Check for Metro Manila in weekly-content-adv (including inside HTML comments)
-    weekly_div = soup.find("div", class_="weekly-content-adv")
-    found_metro_manila = False
-    if weekly_div:
-        # Check visible text
-        if "Metro Manila" in weekly_div.get_text():
-            found_metro_manila = True
-        else:
-            from bs4 import Comment
-            for comment in weekly_div.find_all(string=lambda text: isinstance(text, Comment)):
-                if "Metro Manila" in comment:
-                    found_metro_manila = True
-                    break
-    if not weekly_div or not found_metro_manila:
-        logging.info("Metro Manila not mentioned in advisory content.")
-        return
-    # Find PDF link (first <a> in weather-advisory div)
-    a_tag = adv_div.find("a", href=True)
-    if not a_tag:
-        logging.info("No PDF link found in advisory div.")
-        return
-    pdf_url = a_tag["href"]
-    if not pdf_url.startswith("http"):
-        pdf_url = "https://www.pagasa.dost.gov.ph" + pdf_url
-    # Try to extract issued_at from comments in weekly-content-adv
-    issued_at = None
-    if weekly_div:
-        from bs4 import Comment
-        for comment in weekly_div.find_all(string=lambda text: isinstance(text, Comment)):
-            m = re.search(r"ISSUED AT:?\s*([\w:, ]+\d{4})", comment)
-            if m:
-                issued_at = m.group(1).strip()
-                break
-    if not issued_at:
-        issued_at = "(time not found)"
-    # Send hyperlink message to Telegram (test channel), enable preview
-    caption = f"Metro Manila is included in heavy rainfall outlooks in Weather Advisory No. {advisory_no}, issued at {issued_at}. <a href=\"{pdf_url}\">View PDF</a>"
-    await bot.send_message(chat_id=TEST_ADVISORY_CHANNEL, text=caption, parse_mode="HTML", disable_web_page_preview=False)
-    set_previous_advisory_number(advisory_no)
-    logging.info("Sent new weather advisory link to test Telegram channel.")
 
 
 async def main():
@@ -242,8 +159,6 @@ async def main():
         logging.info("Saved new data to previous_data.json.")
     except Exception as e:
         logging.error(f"Failed to save data: {e}")
-
-    await check_weather_advisory(bot)
 
 
 if __name__ == "__main__":
