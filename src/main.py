@@ -125,11 +125,12 @@ async def check_weather_advisory(bot):
     if not weekly_div or not found_metro_manila:
         logging.info("Metro Manila not mentioned in advisory content.")
         return
-    # Find PDF link
-    a_tag = adv_div.find("a", href=re.compile(r"\\.pdf$"))
-    if not a_tag:
+    # Find PDF link (search recursively for any <a> with .pdf in href)
+    pdf_links = adv_div.find_all("a", href=re.compile(r"\.pdf$"))
+    if not pdf_links:
         logging.info("No PDF link found in advisory div.")
         return
+    a_tag = pdf_links[0]
     pdf_url = a_tag["href"]
     if not pdf_url.startswith("http"):
         pdf_url = "https://www.pagasa.dost.gov.ph" + pdf_url
