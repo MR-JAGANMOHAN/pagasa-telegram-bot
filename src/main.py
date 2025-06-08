@@ -100,10 +100,9 @@ async def check_weather_advisory(bot):
     if not h4:
         logging.info("No h4 found in weather-advisory div.")
         return
-    import re as _re
-    m = _re.search(r"WEATHER ADVISORY NO. (\\d+)", h4.get_text())
+    m = re.search(r"WEATHER ADVISORY NO\.?\s*(\d+)", h4.get_text())
     if not m:
-        logging.info("No advisory number found in h4.")
+        logging.info(f"No advisory number found in h4. h4 text: {h4.get_text()}")
         return
     advisory_no = m.group(1)
     prev_no = get_previous_advisory_number()
@@ -116,7 +115,7 @@ async def check_weather_advisory(bot):
         logging.info("Metro Manila not mentioned in advisory content.")
         return
     # Find PDF link
-    a_tag = adv_div.find("a", href=_re.compile(r"\\.pdf$"))
+    a_tag = adv_div.find("a", href=re.compile(r"\\.pdf$"))
     if not a_tag:
         logging.info("No PDF link found in advisory div.")
         return
