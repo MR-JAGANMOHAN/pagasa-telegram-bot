@@ -139,7 +139,7 @@ async def check_weather_advisory(bot):
         if "ISSUED AT" in h5.get_text():
             issued_at = h5.get_text().replace("ISSUED AT:", "").strip()
             break
-    caption = f"Metro Manila is included in Weather Advisory No. {advisory_no}, issued at {issued_at}"
+    caption = f"Metro Manila is included in heavy rainfall outlooks in Weather Advisory No. {advisory_no}, issued at {issued_at}"
     # Send to Telegram (test channel)
     await bot.send_photo(chat_id=TEST_ADVISORY_CHANNEL, photo=img_byte_arr, caption=caption)
     set_previous_advisory_number(advisory_no)
