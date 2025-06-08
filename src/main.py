@@ -92,10 +92,11 @@ async def main():
         new = new_data.get(category)
 
         if new and new != old:
-            if "Metro Manila" in new:
+            if ("Metro Manila" in new or
+                "All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates" in new):
                 found_new = True
                 logging.info(
-                    f"New {category} warning found and contains 'Metro Manila'. Sending to Telegram."
+                    f"New {category} warning found and contains 'Metro Manila' or termination notice. Sending to Telegram."
                 )
                 # Preserve paragraph breaks
                 message = "\n\n".join(
@@ -130,7 +131,12 @@ async def main():
                     "Heavy Rainfall Warning", "⚠️ <b>Heavy Rainfall Warning</b>"
                 )
                 message = message.replace(
-                    "all RAINFALL WARNING in these areas are now terminated", "<b>all RAINFALL WARNING in these areas are now terminated</b>"
+                    "With this development all RAINFALL WARNING in these areas are now terminated.", 
+                    "✅ With this development all RAINFALL WARNING in these areas are now terminated."
+                )
+                message = message.replace(
+                    "All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates",
+                    "✅ All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates",
                 )
                 message = message.replace("YELLOW WARNING LEVEL", "🟡 <b>YELLOW WARNING LEVEL</b>")
                 message = message.replace("ORANGE WARNING LEVEL", "🟠 <b>ORANGE WARNING LEVEL</b>")
@@ -138,7 +144,7 @@ async def main():
                 tasks.append(send_to_telegram(bot, message))
             else:
                 logging.info(
-                    f"New {category} warning found but does NOT contain 'Metro Manila'. Not sending to Telegram."
+                    f"New {category} warning found but does NOT contain 'Metro Manila' or termination notice. Not sending to Telegram."
                 )
         elif new:
             logging.info(f"No new {category} warning. Same as previous.")
