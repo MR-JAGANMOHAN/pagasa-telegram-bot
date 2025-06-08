@@ -68,6 +68,8 @@ async def send_to_telegram(bot, message):
 
 
 def get_previous_advisory_number():
+    if not os.path.exists(ADVISORY_DATA_FILE):
+        return None
     try:
         with open(ADVISORY_DATA_FILE, "r") as f:
             data = json.load(f)
@@ -77,12 +79,7 @@ def get_previous_advisory_number():
 
 
 def set_previous_advisory_number(number):
-    try:
-        with open(ADVISORY_DATA_FILE, "r") as f:
-            data = json.load(f)
-    except Exception:
-        data = {}
-    data["weather_advisory_no"] = number
+    data = {"weather_advisory_no": number}
     with open(ADVISORY_DATA_FILE, "w") as f:
         json.dump(data, f)
 
@@ -124,34 +121,30 @@ async def check_weather_advisory(bot):
     if not weekly_div or not found_metro_manila:
         logging.info("Metro Manila not mentioned in advisory content.")
         return
-    # Find PDF link (search recursively for any <a> with .pdf in href)
-    pdf_links = adv_div.find_all("a", href=re.compile(r"\.pdf$"))
-    if not pdf_links:
+    # Find PDF link (first <a> in weather-advisory div)
+    a_tag = adv_div.find("a", href=True)
+    if not a_tag:
         logging.info("No PDF link found in advisory div.")
         return
-    a_tag = pdf_links[0]
     pdf_url = a_tag["href"]
     if not pdf_url.startswith("http"):
         pdf_url = "https://www.pagasa.dost.gov.ph" + pdf_url
-    # Download PDF
-    pdf_resp = requests.get(pdf_url)
-    if pdf_resp.status_code != 200:
-        logging.info("Failed to download advisory PDF.")
-        return
-    # Try to extract issued_at from the weekly-content-adv div (look for h5 with 'ISSUED AT')
+    # Try to extract issued_at from comments in weekly-content-adv
     issued_at = None
     if weekly_div:
-        for h5 in weekly_div.find_all("h5"):
-            if "ISSUED AT" in h5.get_text():
-                issued_at = h5.get_text().replace("ISSUED AT:", "").strip()
+        from bs4 import Comment
+        for comment in weekly_div.find_all(string=lambda text: isinstance(text, Comment)):
+            m = re.search(r"ISSUED AT:?\s*([\w:, ]+\d{4})", comment)
+            if m:
+                issued_at = m.group(1).strip()
                 break
     if not issued_at:
         issued_at = "(time not found)"
-    caption = f"Metro Manila is included in heavy rainfall outlooks in Weather Advisory No. {advisory_no}, issued at {issued_at}"
-    # Send PDF as document to Telegram (test channel)
-    await bot.send_document(chat_id=TEST_ADVISORY_CHANNEL, document=BytesIO(pdf_resp.content), filename="WeatherAdvisory.pdf", caption=caption)
+    # Send hyperlink message to Telegram (test channel), enable preview
+    caption = f"Metro Manila is included in heavy rainfall outlooks in Weather Advisory No. {advisory_no}, issued at {issued_at}. <a href=\"{pdf_url}\">View PDF</a>"
+    await bot.send_message(chat_id=TEST_ADVISORY_CHANNEL, text=caption, parse_mode="HTML", disable_web_page_preview=False)
     set_previous_advisory_number(advisory_no)
-    logging.info("Sent new weather advisory PDF to test Telegram channel.")
+    logging.info("Sent new weather advisory link to test Telegram channel.")
 
 
 async def main():
