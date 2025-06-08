@@ -109,9 +109,20 @@ async def check_weather_advisory(bot):
     if prev_no == advisory_no:
         logging.info("No new weather advisory.")
         return
-    # Check for Metro Manila in weekly-content-adv
+    # Check for Metro Manila in weekly-content-adv (including inside HTML comments)
     weekly_div = soup.find("div", class_="weekly-content-adv")
-    if not weekly_div or "Metro Manila" not in weekly_div.get_text():
+    found_metro_manila = False
+    if weekly_div:
+        # Check visible text
+        if "Metro Manila" in weekly_div.get_text():
+            found_metro_manila = True
+        else:
+            from bs4 import Comment
+            for comment in weekly_div.find_all(string=lambda text: isinstance(text, Comment)):
+                if "Metro Manila" in comment:
+                    found_metro_manila = True
+                    break
+    if not weekly_div or not found_metro_manila:
         logging.info("Metro Manila not mentioned in advisory content.")
         return
     # Find PDF link
