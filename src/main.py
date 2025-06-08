@@ -7,7 +7,6 @@ import json
 import logging
 import re
 import requests
-from pdf2image import convert_from_bytes
 from io import BytesIO
 
 # Get secrets from environment variables
@@ -139,22 +138,20 @@ async def check_weather_advisory(bot):
     if pdf_resp.status_code != 200:
         logging.info("Failed to download advisory PDF.")
         return
-    # Convert PDF to PNG
-    images = convert_from_bytes(pdf_resp.content, dpi=300, first_page=1, last_page=1)
-    img_byte_arr = BytesIO()
-    images[0].save(img_byte_arr, format='PNG')
-    img_byte_arr.seek(0)
-    # Find issued at
-    issued_at = ""
-    for h5 in weekly_div.find_all("h5"):
-        if "ISSUED AT" in h5.get_text():
-            issued_at = h5.get_text().replace("ISSUED AT:", "").strip()
-            break
+    # Try to extract issued_at from the weekly-content-adv div (look for h5 with 'ISSUED AT')
+    issued_at = None
+    if weekly_div:
+        for h5 in weekly_div.find_all("h5"):
+            if "ISSUED AT" in h5.get_text():
+                issued_at = h5.get_text().replace("ISSUED AT:", "").strip()
+                break
+    if not issued_at:
+        issued_at = "(time not found)"
     caption = f"Metro Manila is included in heavy rainfall outlooks in Weather Advisory No. {advisory_no}, issued at {issued_at}"
-    # Send to Telegram (test channel)
-    await bot.send_photo(chat_id=TEST_ADVISORY_CHANNEL, photo=img_byte_arr, caption=caption)
+    # Send PDF as document to Telegram (test channel)
+    await bot.send_document(chat_id=TEST_ADVISORY_CHANNEL, document=BytesIO(pdf_resp.content), filename="WeatherAdvisory.pdf", caption=caption)
     set_previous_advisory_number(advisory_no)
-    logging.info("Sent new weather advisory to test Telegram channel.")
+    logging.info("Sent new weather advisory PDF to test Telegram channel.")
 
 
 async def main():

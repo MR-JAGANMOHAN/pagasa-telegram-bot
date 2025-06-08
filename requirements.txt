@@ -1,6 +1,4 @@
 aiohttp
 beautifulsoup4
 python-telegram-bot==20.0
-pdf2image
 requests
-Pillow
