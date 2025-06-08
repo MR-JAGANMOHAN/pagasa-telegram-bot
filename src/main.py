@@ -127,9 +127,12 @@ async def main():
                 message = message.replace(
                     "Heavy Rainfall Warning", "⚠️ <b>Heavy Rainfall Warning</b>"
                 )
-                message = message.replace("YELLOW WARNING", "🟡 <b>YELLOW WARNING</b>")
-                message = message.replace("ORANGE WARNING", "🟠 <b>ORANGE WARNING</b>")
-                message = message.replace("RED WARNING", "🔴 <b>RED WARNING</b>")
+                message = message.replace(
+                    "all RAINFALL WARNING in these areas are now terminated", "<b>all RAINFALL WARNING in these areas are now terminated</b>"
+                )
+                message = message.replace("YELLOW WARNING LEVEL", "🟡 <b>YELLOW WARNING LEVEL</b>")
+                message = message.replace("ORANGE WARNING LEVEL", "🟠 <b>ORANGE WARNING LEVEL</b>")
+                message = message.replace("RED WARNING LEVEL", "🔴 <b>RED WARNING LEVEL</b>")
                 tasks.append(send_to_telegram(bot, message))
             else:
                 logging.info(
