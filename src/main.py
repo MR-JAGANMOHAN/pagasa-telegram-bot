@@ -136,7 +136,7 @@ async def main():
                 )
                 message = message.replace(
                     "All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates",
-                    "✅ All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates",
+                    "✅ All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates\n\nNote that new advisories after this may be issued for other provinces within the Greater NCR area, but this channel will not forward them unless they include Metro Manila.",
                 )
                 message = message.replace("YELLOW WARNING LEVEL", "🟡 <b>YELLOW WARNING LEVEL</b>")
                 message = message.replace("ORANGE WARNING LEVEL", "🟠 <b>ORANGE WARNING LEVEL</b>")
