@@ -93,7 +93,7 @@ async def main():
 
         if new and new != old:
             if ("Metro Manila" in new or
-                "All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates" in new):
+                "now TERMINATED" in new):
                 found_new = True
                 logging.info(
                     f"New {category} warning found and contains 'Metro Manila' or termination notice. Sending to Telegram."
@@ -131,12 +131,12 @@ async def main():
                     "Heavy Rainfall Warning", "⚠️ <b>Heavy Rainfall Warning</b>"
                 )
                 message = message.replace(
-                    "With this development all RAINFALL WARNING in these areas are now terminated.", 
-                    "✅ With this development all RAINFALL WARNING in these areas are now terminated.\n\n<b><u>Note:</u></b> Following this termination, new advisories may be issued for other Greater NCR provinces. This channel will only forward advisories that mention Metro Manila; those without Metro Manila will not be forwarded."
+                    "now TERMINATED.", 
+                    "now TERMINATED. ✅"
                 )
                 message = message.replace(
-                    "All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates.",
-                    "✅ All Thunderstorm Advisory over NCR-PRSD forecast area are now TERMINATED. However, all are still advised to continue monitoring for updates.\n\n<b><u>Note:</u></b> Following this termination, new advisories may be issued for other Greater NCR provinces. This channel will only forward advisories that mention Metro Manila; those without Metro Manila will not be forwarded."
+                    "now terminated.", 
+                    "now terminated. ✅"
                 )
                 message = message.replace("YELLOW WARNING LEVEL", "🟡 <b>YELLOW WARNING LEVEL</b>")
                 message = message.replace("ORANGE WARNING LEVEL", "🟠 <b>ORANGE WARNING LEVEL</b>")
