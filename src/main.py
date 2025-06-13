@@ -64,6 +64,53 @@ async def send_to_telegram(bot, message):
     logging.info("Message sent to Telegram.")
 
 
+def format_telegram_message(new):
+    # Preserve paragraph breaks
+    message = "\n\n".join(
+        [para.strip() for para in new.split("\n\n") if para.strip()]
+    )
+    message = re.sub(
+        r"(?<!Greater )Metro Manila", "<b><u>Metro Manila</u></b>", message
+    )
+    message = message.replace(
+        "Thunderstorm Advisory", "⛈️ <b>Thunderstorm Advisory</b>"
+    )
+    message = message.replace(
+        "Thunderstorm Watch", "🕑 <b>Thunderstorm Watch</b>"
+    )
+    message = message.replace(
+        "Moderate to heavy rainshowers with lightning and strong winds are expected over",
+        "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over",
+    )
+    message = message.replace(
+        "Heavy to intense rainshowers with lightning and strong winds are being experienced",
+        "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced",
+    )
+    message = message.replace(
+        "Intense to torrential rainshowers with lightning and strong winds are being experienced in",
+        "☔ Intense to torrential rainshowers with lightning and strong winds are being experienced in",
+    )
+    message = message.replace(
+        "The above conditions are being experienced in",
+        "☔ The above conditions are being experienced in",
+    )
+    message = message.replace(
+        "Heavy Rainfall Warning", "⚠️ <b>Heavy Rainfall Warning</b>"
+    )
+    message = message.replace(
+        "now TERMINATED.", 
+        "now TERMINATED. ✅"
+    )
+    message = message.replace(
+        "now terminated.", 
+        "now terminated. ✅"
+    )
+    message = message.replace("YELLOW WARNING LEVEL", "🟡 <b>YELLOW WARNING LEVEL</b>")
+    message = message.replace("ORANGE WARNING LEVEL", "🟠 <b>ORANGE WARNING LEVEL</b>")
+    message = message.replace("RED WARNING LEVEL", "🔴 <b>RED WARNING LEVEL</b>")
+    return message
+
+
 async def main():
     logging.info("Starting PAGASA monitor script.")
     async with aiohttp.ClientSession() as session:
@@ -128,49 +175,7 @@ async def main():
                 logging.info(
                     f"New {category} warning found and contains 'Metro Manila' or termination notice. Sending to Telegram."
                 )
-                # Preserve paragraph breaks
-                message = "\n\n".join(
-                    [para.strip() for para in new.split("\n\n") if para.strip()]
-                )
-                message = re.sub(
-                    r"(?<!Greater )Metro Manila", "<b><u>Metro Manila</u></b>", message
-                )
-                message = message.replace(
-                    "Thunderstorm Advisory", "⛈️ <b>Thunderstorm Advisory</b>"
-                )
-                message = message.replace(
-                    "Thunderstorm Watch", "🕑 <b>Thunderstorm Watch</b>"
-                )
-                message = message.replace(
-                    "Moderate to heavy rainshowers with lightning and strong winds are expected over",
-                    "🕑 Moderate to heavy rainshowers with lightning and strong winds are expected over",
-                )
-                message = message.replace(
-                    "Heavy to intense rainshowers with lightning and strong winds are being experienced",
-                    "☔ Heavy to intense rainshowers with lightning and strong winds are being experienced",
-                )
-                message = message.replace(
-                    "Intense to torrential rainshowers with lightning and strong winds are being experienced in",
-                    "☔ Intense to torrential rainshowers with lightning and strong winds are being experienced in",
-                )
-                message = message.replace(
-                    "The above conditions are being experienced in",
-                    "☔ The above conditions are being experienced in",
-                )
-                message = message.replace(
-                    "Heavy Rainfall Warning", "⚠️ <b>Heavy Rainfall Warning</b>"
-                )
-                message = message.replace(
-                    "now TERMINATED.", 
-                    "now TERMINATED. ✅"
-                )
-                message = message.replace(
-                    "now terminated.", 
-                    "now terminated. ✅"
-                )
-                message = message.replace("YELLOW WARNING LEVEL", "🟡 <b>YELLOW WARNING LEVEL</b>")
-                message = message.replace("ORANGE WARNING LEVEL", "🟠 <b>ORANGE WARNING LEVEL</b>")
-                message = message.replace("RED WARNING LEVEL", "🔴 <b>RED WARNING LEVEL</b>")
+                message = format_telegram_message(new)
                 tasks.append(send_to_telegram(bot, message))
             else:
                 logging.info(
