@@ -92,8 +92,38 @@ async def main():
         new = new_data.get(category)
 
         if new and new != old:
-            if ("Metro Manila" in new or
-                "now TERMINATED" in new):
+            # Exclusion: skip if contains Thunderstorm Watch #NCR_PRSD or Rainfall Advisory No.
+            if (
+                "Thunderstorm Watch #NCR_PRSD" in new or
+                "Rainfall Advisory No." in new
+            ):
+                logging.info(
+                    f"New {category} warning found but contains exclusion phrase. Not sending to Telegram."
+                )
+                continue
+
+            # Special logic for Heavy Rainfall Warning
+            if "Heavy Rainfall Warning" in new:
+                found_mm = False
+                for level in [
+                    "YELLOW WARNING LEVEL:",
+                    "ORANGE WARNING LEVEL:",
+                    "RED WARNING LEVEL:"
+                ]:
+                    pattern = rf"{level}([^\n]*)"
+                    match = re.search(pattern, new)
+                    if match:
+                        area_list = match.group(1)
+                        if "Metro Manila" in area_list:
+                            found_mm = True
+                            break
+                if not found_mm:
+                    logging.info(
+                        f"Heavy Rainfall Warning found but Metro Manila not in any warning level. Not sending to Telegram."
+                    )
+                    continue
+
+            if ("Metro Manila" in new or "now TERMINATED" in new):
                 found_new = True
                 logging.info(
                     f"New {category} warning found and contains 'Metro Manila' or termination notice. Sending to Telegram."
