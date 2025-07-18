@@ -2,12 +2,13 @@ name: PAGASA Monitor
 
 on:
   schedule:
-    # every 12 minutes at :03, :15, :27, :39, :51 Manila (not exact multiples of 5)
+    # every 10 minutes at :03, :13, :23, :33, :43, :53 Manila (not exact multiples of 10)
     - cron:  '3  * * * *'
-    - cron:  '15 * * * *'
-    - cron:  '27 * * * *'
-    - cron:  '39 * * * *'
-    - cron:  '51 * * * *'
+    - cron:  '13 * * * *'
+    - cron:  '23 * * * *'
+    - cron:  '33 * * * *'
+    - cron:  '43 * * * *'
+    - cron:  '53 * * * *'
 
   workflow_dispatch:
 
