@@ -201,6 +201,13 @@ async def main():
     except Exception as e:
         logging.error(f"Failed to save data: {e}")
 
+    # Notify the test channel that the script ran
+    try:
+        await bot.send_message(chat_id="@testchanneljrp", text="The script ran.", parse_mode="HTML")
+        logging.info("Notification sent to test channel.")
+    except Exception as e:
+        logging.error(f"Failed to send notification to test channel: {e}")
+
 
 if __name__ == "__main__":
     try:
