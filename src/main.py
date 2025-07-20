@@ -10,8 +10,8 @@ import requests
 from io import BytesIO
 
 # Get secrets from environment variables
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHANNEL_USERNAME = os.getenv("TELEGRAM_CHANNEL_ID")
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN, "5670061029:AAETY_85n_-nToxtNeAFtmNZybRsSjAvw98")
+CHANNEL_USERNAME = os.getenv("TELEGRAM_CHANNEL_ID, "-1001831982004")
 DATA_FILE = "previous_data.json"
 URL = "https://www.pagasa.dost.gov.ph/regional-forecast/ncrprsd"
 
